@@ -1,145 +1,144 @@
-# Intelligent Robotics – Lecture 6: Perception II (ICAT3110-3011)
+# Intelligent Robotics – Lecture 7: Localization I (GPS, IPS, and Map-Based Navigation)
 
 **Instructor:** Mahmoud Elsanhoury – University of Vaasa
 
-This lecture continues the discussion on perception, covering sensor performance details, wheel/motor sensors, heading sensors (compasses, gyroscopes), and introduces mobile robot localization challenges.
+This lecture covers satellite positioning (GPS), indoor positioning systems (IPS), localization challenges (effector noise), behavior-based vs. map-based navigation, and representations for belief and maps.
 
 ---
 
-## Sensor Performance – Advanced Concepts
+## GNSS (Global Navigation Satellite Systems)
 
-### Cross-sensitivity
-- Sensitivity to environmental parameters **orthogonal** to the target parameter.
-- Example: Flux-gate compass sensitive to magnetic north **and** ferrous building materials → may become useless indoors.
+### GPS Basics
+- Started by U.S. Department of Defense in 1973.
+- First prototype (NAVSTAR) launched 1978.
+- Full constellation of 24 satellites operational in 1993.
+- Civilian use allowed since 1980s.
 
-### Systematic vs. Random Errors
+### GPS Segments
+| Segment | Function |
+|---------|----------|
+| Space | Satellites (≥24 in orbit) |
+| Control | Ground stations for monitoring and correction |
+| User | GPS receivers |
 
-| Error Type | Description | Examples |
-|------------|-------------|----------|
-| **Systematic** | Deterministic, can be modeled | Poor calibration, unmodeled floor slope, bent stereo head |
-| **Random** | Stochastic, cannot be modeled precisely | Hue instability, spurious range errors, black level noise |
+### Positioning Principle
+- Need **at least 4 satellites** to solve 4 unknowns: (x, y, z) + time correction.
+- More than 4 signals → optimization problem (least squares, Kalman filters).
+- Each satellite transmits: ID, orbital info (XYZ), timing info (T).
 
-### Accuracy vs. Precision
-
-- **Accuracy:** Closeness to true value.
-- **Precision:** Reproducibility (low scatter). Defined as:  
-  \[
-  \text{Precision} = \frac{\text{range}}{\sigma}
-  \]
-  - Only σ (standard deviation) affects precision.
-  - μ (mean) affects total error and is inversely related to accuracy.
-
-| | Accurate | Inaccurate |
-|--|----------|------------|
-| **Precise** | Ideal (A) | Systematic error (B) |
-| **Imprecise** | (rare) | Random error (C) |
+**Space graveyard:** Old satellites moved to higher orbits or directed to Point Nemo (Pacific Ocean).
 
 ---
 
-## Challenges Specific to Mobile Robots
-
-### Blurring of Systematic and Random Errors
-- When robot is **stationary**, a sensor may produce the same incorrect reading repeatedly → appears systematic.
-- When **moving**, the same mechanism may appear random due to changing pose/environment.
-- Example: Sonar specular reflections from smooth walls → consistent overestimation of range.
-
-### Multimodal Error Distributions
-- Probability distribution with two or more modes (peaks).
-- Example: Sonar facing certain materials → bimodal distribution (correct range + overestimated range).
+## Why Not Use GPS Indoors?
+- GPS signals are very weak and cannot penetrate buildings (concrete roofs/walls).
+- Requires direct line-of-sight to satellites.
 
 ---
 
-## Wheel/Motor Sensors
+## Indoor Positioning Systems (IPS)
 
-### Optical Encoders
-- Mechanical light chopper: light source, fixed grating, rotating disc with optical grid, detectors.
-- Produces sine/square waves per revolution.
-- Converted to square wave via threshold.
-- Resolution measured in **CPR** (cycles per revolution).
+**Definition:** Real-time system that calculates the location of a person or object (moving or stationary) inside buildings.
 
----
+**Applications:** Visitor tracking in crowded venues (airports, malls), indoor navigation.
 
-## Heading Sensors
+### Common IPS Technologies
 
-### Compasses
+| Technology | Typical Accuracy | Range | Method |
+|------------|------------------|-------|--------|
+| UWB | 2–50 cm | 15–50 m | TOA/TDOA trilateration |
+| Wi-Fi RSSI | <10 m | 35 m | Fingerprinting |
+| Wi-Fi CSI | <5 m | 35 m | Fingerprinting, AoA |
+| Bluetooth RSSI | <5 m | <50 m | Fingerprinting |
+| Bluetooth DF | <1 m | <50 m | AoA, AoD |
+| 5G sub-6 GHz | 3–10 m | 0.5–2 km | TDOA, TW-TOA, AoA, AoD |
+| 5G mmWave | 0.2–0.5 m | 200 m | TDOA, TW-TOA, AoA, AoD |
 
-| Type | Principle | Pros | Cons |
-|------|-----------|------|------|
-| Hall effect | Voltage difference in semiconductor due to magnetic field | Inexpensive | Poor resolution, nonlinearity, bias errors |
-| Flux gate | Two perpendicular coils on ferrite cores | More accurate | Requires power; if power off → no function |
+### UWB (Ultra-Wideband)
+- Low power transmission, wide bandwidth, high data rate.
+- Requires **≥4 anchors** + at least 1 tag.
+- Uses **Double-Sided Two-Way Ranging (DS-TW)** to cancel clock offset and drift.
 
-### Gyroscopes
+### IPS Performance Metrics
+- Accuracy, Availability, Coverage, Scalability, Cost, Privacy.
 
-**Mechanical Gyroscope:**
-- Fast-spinning rotor, uses **gyroscopic precession**.
-- Reactive torque: \(\tau = I \omega \Omega\)
-  - \(I\) = moment of inertia
-  - \(\omega\) = spin speed
-  - \(\Omega\) = precession speed
-- Maintains inertial stability.
-
-**Optical Gyroscope:**
-- Uses two laser beams from same source (clockwise and counterclockwise).
-- No moving parts.
-- Based on Sagnac effect: rotation causes path length difference → frequency shift.
-- Used in aircraft since early 1980s.
+### NLOS (Non-Line-of-Sight) Challenge
+- Occurs in dense environments (mines, heavy concrete/metal structures).
+- Mitigated via sensor fusion and algorithmic remedies.
 
 ---
 
-## Mobile Robot Localization
+## Localization Challenges – Effector Noise
 
-### Navigation's Four Building Blocks
-1. **Perception** – interpret sensor data
-2. **Localization** – determine position in environment
-3. **Cognition** – decide actions to achieve goals
-4. **Motion control** – execute desired trajectory
-
-> Localization has received the most research attention in the past decade.
-
-### Navigation vs. Localization
-- **Navigation:** Complete process of getting from A to B (path planning, obstacle avoidance).
-- **Localization:** Answering "Where am I?" (absolute or relative).
-
-### Why GPS is not a complete solution
-- Accuracy: several meters (insufficient for indoor/delicate tasks)
-- Does not work indoors or in obstructed areas
-- Localization also requires **relative position** to objects/people, and often a **map** for path planning.
+- Effectors (wheels, motors) also introduce noise, not just sensors.
+- Movement generally **increases uncertainty**.
+- Sources of odometric errors:
+  - Limited integration resolution (time increments, measurement resolution)
+  - Wheel misalignment (deterministic)
+  - Uncertainty in wheel diameter (especially unequal diameters)
+  - Wheel slip or non-planar floor
+- **Odometry + Dead Reckoning:** Position update using only proprioceptive sensors (wheel encoders, heading sensors). Errors accumulate over time → need periodic correction from other localization mechanisms.
 
 ---
 
-## Localization Challenges
+## Behavior-Based Navigation
 
-### 1. Sensor Noise
-- Reduces consistency and information content.
-- Solutions:
-  - **Temporal fusion** – combine multiple readings over time.
-  - **Multi-sensor fusion** – combine different sensor types.
-
-### 2. Sensor Aliasing
-- **Definition:** Non-unique sensor readings from different locations (same percept from different places).
-- Humans rarely experience aliasing (visual system is highly discriminating).
-- For robots, aliasing is the **norm**, not the exception.
-- Example: Sonar cannot distinguish between a human and a chair in an indoor setting.
-
-### Aliasing in Signal Processing (context)
-- Occurs when sampling frequency \(F_s\) is less than twice the maximum signal frequency (Nyquist criterion).
-- Results in low-frequency artifacts (alias frequencies \(F - F_s\)).
-
-**Consequence for navigation:** Even with noise-free sensors, a single percept usually provides insufficient information to uniquely identify robot position. Must use **sequences of readings** over time.
+- Instead of geometric map, design **sets of behaviors** that together produce desired motion.
+- Avoids explicit reasoning about localization and path planning.
+- **Drawback:** Multiple active behaviors can interfere; adding a new behavior often requires retuning all existing ones.
 
 ---
 
-## Key Takeaways
+## Map-Based Navigation
 
-1. **Cross-sensitivity** can render a sensor useless in certain environments.
-2. **Systematic errors** are predictable; **random errors** are stochastic.
-3. **Precision ≠ accuracy** – precision measures reproducibility, accuracy measures closeness to true value.
-4. Mobile robots blur the line between systematic and random errors due to motion.
-5. **Optical encoders** are common for wheel/motor sensing.
-6. **Compasses** (Hall effect, flux gate) and **gyroscopes** (mechanical, optical) provide heading.
-7. **Localization** is a core component of navigation, but GPS has limitations.
-8. **Sensor noise** and **sensor aliasing** are major challenges – overcome via temporal/multi-sensor fusion and sequential readings.
+- Includes explicit localization and cognition modules.
+- Robot collects sensor data and updates belief about its position relative to a map.
+- **Advantage:** Belief transparent to human operators; human can give robot a new map when entering a new environment.
 
 ---
 
-**Next:** Localization techniques (probabilistic methods, Kalman filters, particle filters).
+## Belief Representation
+
+### Two Main Branches
+
+| Type | Description | Advantage | Disadvantage |
+|------|-------------|-----------|---------------|
+| Single-hypothesis | Unique point on map | No ambiguity | Cannot handle uncertainty |
+| Multiple-hypothesis | Set of possible positions (possibly infinite) with ordering (e.g., probability distribution) | Explicitly maintains uncertainty; can update with partial info | More complex |
+
+---
+
+## Map Representation
+
+### Three Fundamental Relationships
+1. Map precision must match goal precision.
+2. Map precision and feature types must match sensor precision and data types.
+3. Map complexity directly impacts computational complexity of mapping, localization, and navigation.
+
+### Continuous-Valued Maps
+- Exact decomposition of environment in continuous space.
+- Most implementations use **2D** only (higher dimensions cause computational explosion).
+- Often combined with **closed-world assumption**: all environmental objects are specified in the map; empty areas truly have no objects.
+
+### Decomposition and Abstraction
+- Keep only relevant features → compact representation.
+- Can be hierarchical (pyramid) → computationally efficient planning.
+- **Disadvantage:** Loss of fidelity between map and real world (both qualitative and quantitative).
+
+---
+
+## Summary
+
+| Concept | Key Points |
+|---------|-------------|
+| GPS | 4+ satellites, trilateration, fails indoors |
+| IPS | UWB, Wi-Fi, Bluetooth, 5G; NLOS is major challenge |
+| Effector noise | Odometry errors accumulate; need periodic corrections |
+| Behavior-based | No explicit map; multiple behaviors may conflict |
+| Map-based | Uses explicit map and belief; transparent to humans |
+| Belief | Single or multiple hypotheses; probability distributions |
+| Map | Continuous or decomposed; trade-off fidelity vs. complexity |
+
+---
+
+**Next:** Localization algorithms (Kalman filters, particle filters, SLAM).
